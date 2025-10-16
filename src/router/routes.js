@@ -1,16 +1,34 @@
 const routes = [
+  
   {
-    path: '/',
-    component: () => import('layouts/MainLayout.vue'),
-    children: [{ path: '', component: () => import('pages/IndexPage.vue') }],
+    path: '/login',
+    component: () => import('pages/LoginPage.vue')
   },
 
-  // Always leave this as last one,
-  // but you can also remove it
+  
+  {
+    path: '/app', // Todas as páginas do app começarão com /app
+    component: () => import('layouts/MainLayout.vue'),
+    children: [
+      // Esta página será mostrada DENTRO do MainLayout
+      { path: 'select-unit', component: () => import('pages/SelecionaUnidadePage.vue') },
+
+      { path: 'admin/dashboard', component: () => import('pages/admin/DashboardPage.vue') }
+    ]
+  },
+
+  // Redirecionamento: Se alguém aceder à raiz '/', envia-o para o login.
+  {
+    path: '/',
+    redirect: '/login'
+  },
+
+  // Rota de erro, sempre por último.
   {
     path: '/:catchAll(.*)*',
-    component: () => import('pages/ErrorNotFound.vue'),
-  },
+    component: () => import('pages/ErrorNotFound.vue')
+  }
 ]
 
 export default routes
+
