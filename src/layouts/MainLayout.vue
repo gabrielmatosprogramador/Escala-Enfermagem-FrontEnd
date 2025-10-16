@@ -3,7 +3,7 @@
     <q-header elevated>
       <q-toolbar>
         <q-toolbar-title>
-          App de Escalas de Enfermagem
+          Escala de Enfermagem
         </q-toolbar-title>
       </q-toolbar>
     </q-header>
