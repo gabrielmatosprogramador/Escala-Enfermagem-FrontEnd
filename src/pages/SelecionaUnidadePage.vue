@@ -46,9 +46,8 @@ const units = ref([
 
 function selectUnit(unit) {
   $q.notify({
-    message: `Unidade '${unit.name}' selecionada. A carregar painel...`
+    message: `Unidade '${unit.name}' selecionada. Carregando painel...`
   })
-
     // REDIRECIONANDO PARA A PÁGINA DE DASHBOARD DO ADMIN COM O ID DA UNIDADE PARA CARREGAMENTO DAS INFORMAÇÕES
   router.push(`/app/admin/dashboard?unitId=${unit.name}`)
 }
