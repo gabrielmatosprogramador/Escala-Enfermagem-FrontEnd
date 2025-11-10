@@ -2,9 +2,13 @@
   <q-dialog :model-value="show" @update:model-value="onClose" persistent>
     <q-card style="width: 500px; max-width: 90vw;">
       <q-card-section class="bg-primary text-white">
-        <div class="text-h6">Adicionar Novo Sítio de Atuação</div>
+        <!-- Título Dinâmico -->
+        <div class="text-h6">{{ isEditing ? 'Editar Sítio' : 'Adicionar Novo Sítio' }}</div>
       </q-card-section>
 
+      <!-- Atenção ao 'observacoes' que você usou no dashboard. 
+           Vou mudar aqui para 'location' como tínhamos antes, ou pode ajustar.
+           Vamos usar 'observacoes' para ser consistente com o seu dashboard. -->
       <q-form @submit.prevent="onSave">
         <q-card-section>
           <q-input
@@ -17,7 +21,7 @@
           />
           <q-input
             v-model="formData.observacoes"
-            label="Observações"
+            label="Observações (ex: 2º Andar, Ala Sul)"
             outlined
             class="q-mb-md"
           />
@@ -25,7 +29,8 @@
 
         <q-card-actions align="right" class="q-pa-md">
           <q-btn label="Cancelar" color="grey-8" flat @click="onClose" />
-          <q-btn label="Guardar" color="primary" type="submit" />
+          <!-- Label do Botão Dinâmico -->
+          <q-btn :label="isEditing ? 'Atualizar' : 'Guardar'" color="primary" type="submit" />
         </q-card-actions>
       </q-form>
     </q-card>
@@ -33,21 +38,27 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
-// Props define a entrada de dados para o componente
 const props = defineProps({
   show: {
     type: Boolean,
     default: false
+  },
+  // A NOVA PROP:
+  sitioToEdit: {
+    type: Object,
+    default: null
   }
 })
 
-//emits define os eventos que o componente pode emitir para o componente pai (DashboardPage)
 const emit = defineEmits(['close', 'save'])
 
-//variaveis reativas, "molde" de dados para o formulário
+const isEditing = computed(() => !!props.sitioToEdit)
+
+// Molde de dados
 const formData = ref({
+  id: null,
   name: '',
   observacoes: ''
 })
@@ -57,14 +68,17 @@ function onClose() {
 }
 
 function onSave() {
-  // Emite o evento 'save' com os dados do formulário
   emit('save', { ...formData.value })
 }
 
-// Limpa o formulário sempre que o modal é aberto
+// Observador para preencher ou limpar o formulário
 watch(() => props.show, (newValue) => {
   if (newValue) {
-    formData.value = { name: '', location: '' }
+    if (isEditing.value) {
+      formData.value = { ...props.sitioToEdit }
+    } else {
+      formData.value = { id: null, name: '', observacoes: '' }
+    }
   }
 })
 </script>
