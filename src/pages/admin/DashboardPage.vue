@@ -2,7 +2,7 @@
   <q-page padding class="bg-grey-2">
     <div class="q-mb-md">
       <div class="text-h5">Painel do Administrador</div>
-      <div class="text-subtitle1">Unidade selecionada:  {{ $route.query.unitId }}</div>
+      <div class="text-subtitle1">Unidade selecionada: {{ $route.query.unitId }}</div>
     </div>
 
     <q-card>
@@ -15,7 +15,7 @@
       <q-separator />
 
       <q-tab-panels v-model="tab" animated>
-        <!-- Painel de Gestão de Profissionais -->
+        <!-- Painel Profissionais -->
         <q-tab-panel name="users">
           <div class="row justify-between items-center q-mb-md">
             <div class="text-h6">Gerir Profissionais</div>
@@ -73,6 +73,7 @@
         <q-tab-panel name="schedule">
           <div class="row justify-between items-center q-mb-md">
             <div class="text-h6">Criar/Editar Escala</div>
+            <!-- Este botão abre o novo FormEscala -->
             <q-btn label="Adicionar à Escala" color="primary" icon="add" @click="showEscalaForm = true" />
           </div>
           <q-separator />
@@ -90,7 +91,6 @@
                 </q-item-label>
               </q-item-section>
               <q-item-section side>
-                 <!-- No futuro, podemos adicionar botões de editar/apagar escala -->
                 <q-btn size="sm" flat round icon="delete" color="negative" @click="onDeleteEscala(escala)"/>
               </q-item-section>
             </q-item>
@@ -104,7 +104,7 @@
       </q-tab-panels>
     </q-card>
 
-    <!-- Chamar os forms aqui e alterar a visualização na TAB -->
+    <!-- Formulários (Modais) -->
     <form-usuario
       :show="showUserForm"
       :user-to-edit="userToEdit"
@@ -130,7 +130,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue' // Importar 'computed'
 import { useQuasar } from 'quasar'
 import FormUsuario from 'src/components/admin/FormUsuario.vue'
 import FormSitio from 'src/components/admin/FormSitio.vue'
@@ -140,8 +140,7 @@ import FormEscala from 'src/components/admin/FormEscala.vue'
 defineOptions({ name: 'AdminDashboardPage' })
 
 const $q = useQuasar()
-// CORREÇÃO: ref() só pode ter um valor inicial
-const tab = ref('users')
+const tab = ref('users') // CORREÇÃO: ref() só pode ter um valor inicial
 
 // --- LÓGICA PROFISSIONAIS (USERS) ---
 const showUserForm = ref(false)
@@ -157,20 +156,22 @@ function openEditUserModal(user) {
   showUserForm.value = true
 }
 
+// computed property para saber se estamos a editar
+const isEditingUser = computed(() => !!userToEdit.value)
+
 function handleSaveUser(userData) {
-  if (userToEdit.value) { // Modo Edição
+  if (isEditingUser.value) { // Modo Edição
     const index = users.value.findIndex(u => u.id === userData.id)
     if (index !== -1) users.value[index] = userData
     $q.notify({ color: 'positive', message: `Profissional '${userData.name}' atualizado!` })
   } else { // Modo Criação
     users.value.push({ ...userData, id: Date.now() })
-    // CORREÇÃO: Mensagem de notificação
     $q.notify({ color: 'positive', message: `Profissional '${userData.name}' salvo com sucesso!` })
   }
   showUserForm.value = false
 }
 
-
+// CORREÇÃO: A função de apagar precisa de saber QUEM apagar.
 function onDeleteUser(user) {
   $q.dialog({
     title: 'Confirmar',
@@ -178,15 +179,13 @@ function onDeleteUser(user) {
     cancel: true,
     persistent: true
   }).onOk(() => {
-    // CORREÇÃO: Usar .filter() para remover o item específico, não .pop()
     users.value = users.value.filter(u => u.id !== user.id)
     $q.notify({ color: 'positive', message: `Profissional '${user.name}' eliminado.` })
   })
-  // Apagar o "showUserForm.value = false" daqui, não faz sentido.
 }
 
 
-//LÓGICA SÍTIOS
+// --- LÓGICA SÍTIOS (SITES) ---
 const showSitioForm = ref(false)
 const sitios = ref([])
 const sitioToEdit = ref(null)
@@ -200,20 +199,24 @@ function openEditSitioModal(sitio) {
   showSitioForm.value = true
 }
 
+const isEditingSitio = computed(() => !!sitioToEdit.value)
+
 function handleSaveSitio(sitioData) {
-  if (sitioToEdit.value) { // Modo Edição
-    const index = sitios.value.findIndex(s => s.id === sitioData.id)
-    if (index !== -1) sitios.value[index] = sitioData
-    $q.notify({ color: 'positive', message: `Sítio '${sitioData.name}' atualizado!` })
+  // Ajuste para usar a sua nomenclatura 'observacoes'
+  const dataToSave = { ...sitioData, observacoes: sitioData.observacoes || '' }
+
+  if (isEditingSitio.value) { // Modo Edição
+    const index = sitios.value.findIndex(s => s.id === dataToSave.id)
+    if (index !== -1) sitios.value[index] = dataToSave
+    $q.notify({ color: 'positive', message: `Sítio '${dataToSave.name}' atualizado!` })
   } else { // Modo Criação
-    sitios.value.push({ ...sitioData, id: Date.now() })
-    // CORREÇÃO: Mensagem de notificação
-    $q.notify({ color: 'positive', message: `Sítio '${sitioData.name}' salvo com sucesso!` })
+    sitios.value.push({ ...dataToSave, id: Date.now() })
+    $q.notify({ color: 'positive', message: `Sítio '${dataToSave.name}' salvo com sucesso!` })
   }
   showSitioForm.value = false
 }
 
-
+// CORREÇÃO: A função de apagar precisa de saber QUAL sítio apagar.
 function onDeleteSitio(sitio) {
    $q.dialog({
     title: 'Confirmar',
@@ -221,32 +224,78 @@ function onDeleteSitio(sitio) {
     cancel: true,
     persistent: true
   }).onOk(() => {
-    // CORREÇÃO: Usar .filter() para remover o item específico
     sitios.value = sitios.value.filter(s => s.id !== sitio.id)
-    // CORREÇÃO: Mensagem de notificação
     $q.notify({ color: 'positive', message: `Sítio '${sitio.name}' deletado com sucesso!` })
   })
 }
 
-//LÓGICA ESCALAS
+// --- LÓGICA ESCALAS (SCHEDULE) ---
 const showEscalaForm = ref(false)
 const escalas = ref([]) // A nossa nova lista de escalas
 
-// Função para guardar a nova escala
+/**
+ * Função auxiliar para obter todos os dias num intervalo de datas.
+ * As datas vêm no formato 'YYYY/MM/DD'.
+ */
+function getDatesInRange(startDateStr, endDateStr) {
+  const dates = []
+  const currentDate = new Date(startDateStr)
+  const endDate = new Date(endDateStr)
+
+  // Ajuste de fuso horário simples para evitar problemas
+  currentDate.setMinutes(currentDate.getMinutes() + currentDate.getTimezoneOffset())
+  endDate.setMinutes(endDate.getMinutes() + endDate.getTimezoneOffset())
+
+  while (currentDate <= endDate) {
+    // Formata a data de volta para 'YYYY/MM/DD'
+    dates.push(currentDate.toISOString().split('T')[0].replace(/-/g, '/'))
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+  return dates
+}
+
+// FUNÇÃO ATUALIZADA para lidar com intervalos e múltiplos turnos
 function onSaveEscala(escalaData) {
-  // escalaData contém { professionalId, siteId, date, shift }
-  const newEscala = { id: Date.now(), ...escalaData }
-  escalas.value.push(newEscala)
-  
-  $q.notify({ color: 'positive', message: 'Escala criada com sucesso!' })
+  const { professionalId, siteId, dates, shifts } = escalaData
+
+  // 1. Obter a lista de datas
+  let dateStrings = []
+  if (typeof dates === 'string') {
+    // Caso o utilizador tenha selecionado só um dia
+    dateStrings.push(dates)
+  } else if (dates && dates.from) {
+    // Caso tenha selecionado um intervalo
+    dateStrings = getDatesInRange(dates.from, dates.to)
+  }
+
+  // 2. Iterar e criar as entradas de escala
+  let escalasCriadasCount = 0
+  for (const date of dateStrings) {
+    for (const shift of shifts) {
+      const newEscala = {
+        id: Date.now() + escalasCriadasCount, // ID único para cada entrada
+        professionalId,
+        siteId,
+        date,
+        shift
+      }
+      escalas.value.push(newEscala)
+      escalasCriadasCount++
+    }
+  }
+
+  $q.notify({
+    color: 'positive',
+    message: `${escalasCriadasCount} evento(s) de escala criados com sucesso!`
+  })
   showEscalaForm.value = false
 }
 
-// Função para apagar uma escala
+// Função para apagar uma escala individual
 function onDeleteEscala(escala) {
    $q.dialog({
     title: 'Confirmar',
-    message: `Apagar esta escala?`,
+    message: `Apagar esta escala? (${getUserName(escala.professionalId)} em ${escala.date})`,
     cancel: true,
     persistent: true
   }).onOk(() => {
@@ -255,14 +304,14 @@ function onDeleteEscala(escala) {
   })
 }
 
-// Funções auxiliares para mostrar os nomes na lista, em vez de IDs
+// Funções auxiliares para mostrar nomes
 function getUserName(id) {
   const user = users.value.find(u => u.id === id)
-  return user ? user.name : 'Profissional não encontrado'
+  return user ? user.name : 'Profissional inválido'
 }
 function getSiteName(id) {
   const site = sitios.value.find(s => s.id === id)
-  return site ? site.name : 'Sítio não encontrado'
+  return site ? site.name : 'Sítio inválido'
 }
 </script>
 

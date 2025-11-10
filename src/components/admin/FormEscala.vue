@@ -1,22 +1,13 @@
 <template>
-  <!-- O nosso modal padrão -->
   <q-dialog :model-value="show" @update:model-value="onClose" persistent>
     <q-card style="width: 500px; max-width: 90vw;">
       <q-card-section class="bg-primary text-white">
-        <!-- Título (poderíamos torná-lo dinâmico para edição no futuro) -->
         <div class="text-h6">Adicionar Evento à Escala</div>
       </q-card-section>
 
       <q-form @submit.prevent="onSave">
         <q-card-section class="q-gutter-md">
-          <!-- 
-            CAMPO DE PROFISSIONAL
-            - :options="users" -> Recebe a lista de utilizadores do componente pai (prop).
-            - option-label="name" -> Diz ao QSelect para mostrar o campo 'name' do objeto.
-            - option-value="id" -> Diz ao QSelect para usar o 'id' como valor.
-            - emit-value e map-options -> Garantem que o v-model (formData.professionalId)
-                                         recebe apenas o 'id', e não o objeto de utilizador inteiro.
-          -->
+          <!-- O seletor de Profissional continua igual -->
           <q-select
             v-model="formData.professionalId"
             :options="users"
@@ -30,7 +21,7 @@
             lazy-rules
           />
 
-          <!-- CAMPO DE SÍTIO (mesma lógica) -->
+          <!-- O seletor de Sítio continua igual -->
           <q-select
             v-model="formData.siteId"
             :options="sites"
@@ -44,19 +35,29 @@
             lazy-rules
           />
 
-          <!-- CAMPO DE DATA (com popup de calendário) -->
+          <!--
+            MUDANÇA 1: CAMPO DE DATA (AGORA COM INTERVALO)
+            O q-input agora é só um "gatilho" visual para o popup.
+            Usamos uma 'computed property' (dateRangeDisplay) para mostrar o texto.
+          -->
           <q-input
-            v-model="formData.date"
-            label="Data"
+            :model-value="dateRangeDisplay"
+            label="Datas"
             outlined
-            mask="####/##/##"
-            :rules="[val => !!val || 'A data é obrigatória']"
+            readonly
+            :rules="[val => !!formData.dates || 'A data é obrigatória']"
             lazy-rules
+            class="cursor-pointer"
           >
             <template v-slot:append>
               <q-icon name="event" class="cursor-pointer">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale">
-                  <q-date v-model="formData.date" mask="YYYY/MM/DD">
+                  <!--
+                    A MÁGICA ESTÁ AQUI:
+                    1. Adicionamos a prop 'range' ao q-date.
+                    2. O v-model agora está ligado a 'formData.dates'.
+                  -->
+                  <q-date v-model="formData.dates" range mask="YYYY/MM/DD">
                     <div class="row items-center justify-end">
                       <q-btn v-close-popup label="Fechar" color="primary" flat />
                     </div>
@@ -66,13 +67,20 @@
             </template>
           </q-input>
 
-          <!-- CAMPO DE TURNO (com opções fixas) -->
+          <!--
+            MUDANÇA 2: CAMPO DE TURNO (AGORA COM MÚLTIPLA SELEÇÃO)
+            1. Adicionamos a prop 'multiple'.
+            2. Adicionamos 'use-chips' para um visual melhor.
+            3. O v-model 'formData.shifts' é agora um array.
+          -->
           <q-select
-            v-model="formData.shift"
+            v-model="formData.shifts"
             :options="shiftOptions"
-            label="Turno"
+            label="Turnos"
             outlined
-            :rules="[val => !!val || 'O turno é obrigatório']"
+            multiple
+            use-chips
+            :rules="[val => val && val.length > 0 || 'Selecione pelo menos um turno']"
             lazy-rules
           />
 
@@ -88,38 +96,41 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
-// --- PROPS ---
-// Este componente precisa de receber as listas de 'users' e 'sites' do pai!
 const props = defineProps({
-  show: {
-    type: Boolean,
-    default: false
-  },
-  users: {
-    type: Array,
-    required: true
-  },
-  sites: {
-    type: Array,
-    required: true
-  }
-  // No futuro, poderíamos adicionar uma prop 'escalaToEdit'
+  show: { type: Boolean, default: false },
+  users: { type: Array, required: true },
+  sites: { type: Array, required: true }
 })
 
-// --- EMITS ---
 const emit = defineEmits(['close', 'save'])
 
-// Opções de turno fixas
 const shiftOptions = ref(['Manhã', 'Tarde', 'Noite'])
 
-// Molde de dados para a nova escala
+// --- MUDANÇA 3: ATUALIZAR O MOLDE DOS DADOS ---
 const formData = ref({
   professionalId: null,
   siteId: null,
-  date: '',
-  shift: null
+  dates: null, // De 'date: ""' para 'dates: null'. Vai guardar { from: '...', to: '...' }
+  shifts: []  // De 'shift: null' para 'shifts: []'. Vai guardar ['Manhã', 'Tarde']
+})
+
+// Esta 'computed property' cria o texto para o campo de data.
+const dateRangeDisplay = computed(() => {
+  if (!formData.value.dates) {
+    return 'Selecione um dia ou um intervalo'
+  }
+  if (typeof formData.value.dates === 'string') {
+    // Caso o utilizador selecione só um dia
+    return formData.value.dates
+  }
+  if (formData.value.dates.from && formData.value.dates.to) {
+    // Caso selecione um intervalo
+    return `${formData.value.dates.from} até ${formData.value.dates.to}`
+  }
+  // Caso esteja a meio da seleção
+  return 'A selecionar intervalo...'
 })
 
 function onClose() {
@@ -127,19 +138,17 @@ function onClose() {
 }
 
 function onSave() {
-  // Envia os dados do formulário (que contêm os IDs e a data/turno)
   emit('save', { ...formData.value })
 }
 
-// Limpa o formulário sempre que o modal é aberto
+// Limpa o formulário quando o modal é aberto
 watch(() => props.show, (newValue) => {
   if (newValue) {
-    // Reset do formulário
     formData.value = {
       professionalId: null,
       siteId: null,
-      date: '',
-      shift: null
+      dates: null,
+      shifts: []
     }
   }
 })
