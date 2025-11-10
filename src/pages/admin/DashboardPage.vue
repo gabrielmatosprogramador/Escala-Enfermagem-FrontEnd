@@ -2,12 +2,12 @@
   <q-page padding class="bg-grey-2">
     <div class="q-mb-md">
       <div class="text-h5">Painel do Administrador</div>
-      <div class="text-subtitle1">Unidade selecionada: ID {{ $route.query.unitId }}</div>
+      <div class="text-subtitle1">Unidade selecionada: {{ $route.query.unitId }}</div>
     </div>
 
     <q-card>
       <q-tabs v-model="tab" dense class="text-grey" active-color="primary" indicator-color="primary" align="justify">
-        <q-tab name="users" icon="manage_accounts" label="Gerir Utilizadores" />
+        <q-tab name="users" icon="manage_accounts" label="Gerir Profissionais" />
         <q-tab name="sites" icon="workspaces" label="Gerir Sítios" />
         <q-tab name="schedule" icon="event" label="Criar Escala" />
       </q-tabs>
@@ -41,7 +41,7 @@
               <q-item-section side>
                 <div class="row q-gutter-sm">
                   <q-btn size="sm" flat round icon="edit" color="info" />
-                  <q-btn size="sm" flat round icon="delete" color="negative" />
+                  <q-btn size="sm" flat round icon="delete" color="negative" @click="onDeleteUser()"/>
                 </div>
               </q-item-section>
             </q-item>
@@ -104,6 +104,20 @@ function onSaveUser(userData) {
     message: `Profissional '${userData.name}' guardado com sucesso!`
   })
 
+  showUserForm.value = false
+}
+
+function onDeleteUser(userData) {
+  console.log('Guardar novo utilizador:', userData)
+  // Adiciona o novo utilizador à nossa lista (com um ID temporário)
+  users.value.pop({
+    id: Date.now(), // Usamos o timestamp como ID único por agora
+    ...userData
+  })
+  $q.notify({
+    color: 'negative',
+    message: `Profissional '${userData.name}' eliminado com sucesso!`
+  })
   showUserForm.value = false
 }
 </script>
