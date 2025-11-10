@@ -16,8 +16,8 @@
             lazy-rules
           />
           <q-input
-            v-model="formData.location"
-            label="Localização (ex: 2º Andar, Ala Sul)"
+            v-model="formData.observacoes"
+            label="Observações"
             outlined
             class="q-mb-md"
           />
@@ -49,7 +49,7 @@ const emit = defineEmits(['close', 'save'])
 //variaveis reativas, "molde" de dados para o formulário
 const formData = ref({
   name: '',
-  location: ''
+  observacoes: ''
 })
 
 function onClose() {
